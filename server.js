@@ -20,38 +20,18 @@ let tiktokConnected = false;
 let tiktokUsername = "";
 
 const GIFT_MAP = {
-  "rosa":         { teamId: "fla", points: 1 },
-  "leão":         { teamId: "fla", points: 10 },
-  "gg":           { teamId: "pal", points: 1 },
-  "diamante":     { teamId: "pal", points: 10 },
-  "dedo de coração": { teamId: "cor", points: 1 },
-  "coroa":        { teamId: "cor", points: 10 },
-  "rosinha":      { teamId: "sao", points: 1 },
-  "futebol":      { teamId: "sao", points: 10 },
-  "café":         { teamId: "flu", points: 1 },
-  "golfinho":     { teamId: "flu", points: 10 },
-  "chama":        { teamId: "bot", points: 1 },
-  "raio":         { teamId: "bot", points: 10 },
-  "nota musical": { teamId: "vas", points: 1 },
-  "foguete":      { teamId: "vas", points: 10 },
-  "trevo":        { teamId: "gre", points: 1 },
-  "unicórnio":    { teamId: "gre", points: 10 },
-  "balão":        { teamId: "int", points: 1 },
-  "guitarra":     { teamId: "int", points: 10 },
-  "biscoito da sorte": { teamId: "atl", points: 1 },
-  "dragão":       { teamId: "atl", points: 10 },
-  "gato dançante":     { teamId: "bah", points: 5 },
-  "presente surpresa": { teamId: "bah", points: 15 },
-  "bolo":         { teamId: "cru", points: 1 },
-  "estrela cadente": { teamId: "cru", points: 10 },
-  "panda":        { teamId: "san", points: 1 },
-  "alvo":         { teamId: "san", points: 10 },
-  "diva":         { teamId: "vit", points: 5 },
-  "águia dourada": { teamId: "vit", points: 15 },
-  "coração brilhante": { teamId: "cap", points: 5 },
-  "circo mágico":      { teamId: "cap", points: 15 },
-  "ursinho":      { teamId: "ctb", points: 5 },
-  "lobo":         { teamId: "ctb", points: 15 },
+  "rose":           { teamId: "fla", points: 1 },
+  "gg":             { teamId: "pal", points: 1 },
+  "tiktok":         { teamId: "cor", points: 1 },
+  "football love":  { teamId: "sao", points: 1 },
+  "ice cream cone": { teamId: "flu", points: 1 },
+  "glow stick":     { teamId: "bot", points: 1 },
+  "oldies":         { teamId: "vas", points: 1 },
+  "pop":            { teamId: "gre", points: 1 },
+  "freestyle":      { teamId: "int", points: 1 },
+  "cake slice":     { teamId: "atl", points: 1 },
+  "white rose":     { teamId: "cru", points: 1 },
+  "you're awesome": { teamId: "san", points: 1 },
 };
 
 io.on("connection", (socket) => {
@@ -74,7 +54,7 @@ io.on("connection", (socket) => {
 
     try {
       tiktokConnection = new WebcastPushConnection(username, {
-        enableExtendedGiftInfo: true,
+        enableExtendedGiftInfo: false,
       });
 
       await tiktokConnection.connect();
