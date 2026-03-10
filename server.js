@@ -21,18 +21,18 @@ let connected = false;
 let currentUsername = "";
 
 const GIFT_MAP = {
-  "rosa":                 { teamId: "fla", points: 1 },
+  "Rose":                 { teamId: "fla", points: 1 },
   "gg":                   { teamId: "pal", points: 1 },
   "tiktok":               { teamId: "cor", points: 1 },
-  "te amo tanto":         { teamId: "sao", points: 1 },
-  "casquinha de sorvete": { teamId: "flu", points: 1 },
+  " Love you so much":    { teamId: "sao", points: 1 },
+  "Ice Cream Cone":       { teamId: "flu", points: 1 },
   "glow stick":           { teamId: "bot", points: 1 },
   "oldies":               { teamId: "vas", points: 1 },
   "pop":                  { teamId: "gre", points: 1 },
   "freestyle":            { teamId: "int", points: 1 },
-  "fatia de bolo":        { teamId: "atl", points: 1 },
-  "rosa branca":          { teamId: "cru", points: 1 },
-  "você é incrível":      { teamId: "san", points: 1 },
+  "Cake Slice":           { teamId: "atl", points: 1 },
+  "White Rose":           { teamId: "cru", points: 1 },
+  "You're awesome":       { teamId: "san", points: 1 },
 };
 
 app.get("/", (req, res) => {
