@@ -14,7 +14,6 @@ const io = new Server(server, {
 });
 
 const PORT = process.env.PORT || 3001;
-const TIKTOOL_API_KEY = process.env.TIKTOOL_API_KEY || "";
 
 let tiktokConnection = null;
 let tiktokConnected = false;
@@ -54,9 +53,9 @@ io.on("connection", (socket) => {
     }
 
     try {
-      tiktokConnection = new TikTokLive({
-        uniqueId: username,
-        apiKey: TIKTOOL_API_KEY,
+      tiktokConnection = new WebcastPushConnection(username, {
+        processInitialData: false,
+        enableExtendedGiftInfo: false,
       });
 
       await tiktokConnection.connect();
@@ -65,21 +64,21 @@ io.on("connection", (socket) => {
       console.log(`✅ Conectado ao TikTok: @${username}`);
       io.emit("tiktok-connected", username);
 
-      tiktokConnection.on("gift", (event) => {
-        const giftName = event.name || event.giftName || "";
+      tiktokConnection.on("gift", (data) => {
+        const giftName = data.giftName || "";
         const giftLower = giftName.toLowerCase().trim();
         const mapping = GIFT_MAP[giftLower];
 
         const giftData = {
-          uniqueId: event.userId || event.uniqueId || "",
-          username: event.nickname || event.uniqueId || "Anônimo",
+          uniqueId: data.uniqueId || "",
+          username: data.nickname || data.uniqueId || "Anônimo",
           profilePicture:
-            event.profilePictureUrl ||
-            `https://api.dicebear.com/7.x/adventurer/svg?seed=${event.uniqueId}`,
+            data.profilePictureUrl ||
+            `https://api.dicebear.com/7.x/adventurer/svg?seed=${data.uniqueId}`,
           giftName: giftName,
-          giftPictureUrl: event.image || event.giftPictureUrl || "",
-          repeatCount: event.repeatCount || 1,
-          diamondCount: event.diamondCount || 0,
+          giftPictureUrl: data.giftPictureUrl || data.gift?.picture?.urlList?.[0] || "",
+          repeatCount: data.repeatCount || 1,
+          diamondCount: data.diamondCount || 0,
           teamId: mapping ? mapping.teamId : null,
           points: mapping ? mapping.points : 0,
         };
@@ -95,26 +94,26 @@ io.on("connection", (socket) => {
         io.emit("gift", giftData);
       });
 
-      tiktokConnection.on("chat", (event) => {
+      tiktokConnection.on("chat", (data) => {
         io.emit("chat", {
-          uniqueId: event.uniqueId,
-          comment: event.comment,
-          profilePicture: event.profilePictureUrl,
+          uniqueId: data.uniqueId,
+          comment: data.comment,
+          profilePicture: data.profilePictureUrl,
         });
       });
 
-      tiktokConnection.on("member", (event) => {
+      tiktokConnection.on("member", (data) => {
         io.emit("member", {
-          uniqueId: event.uniqueId,
-          profilePicture: event.profilePictureUrl,
+          uniqueId: data.uniqueId,
+          profilePicture: data.profilePictureUrl,
         });
       });
 
-      tiktokConnection.on("viewer", (event) => {
-        io.emit("viewer-count", event.viewerCount);
+      tiktokConnection.on("roomUser", (data) => {
+        io.emit("viewer-count", data.viewerCount);
       });
 
-      tiktokConnection.on("disconnect", () => {
+      tiktokConnection.on("disconnected", () => {
         console.log("❌ TikTok desconectado");
         tiktokConnected = false;
         tiktokUsername = "";
