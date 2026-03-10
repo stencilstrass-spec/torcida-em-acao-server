@@ -93,13 +93,12 @@ io.on("connection", (socket) => {
           points: mapping ? mapping.points : 0,
         };
 
-        console.log(
-          `🎁 Gift: "${giftName}" → ${
-            mapping ? `${mapping.teamId} (+${mapping.points}pts)` : "NÃO MAPEADO"
-          } de ${giftData.username}`
-        );
-         console.log(`🖼️ Imagem: ${giftData.giftPictureUrl}`);
-        io.emit("gift", giftData);
+      console.log(`🖼️ Imagem: ${giftData.giftPictureUrl}`);
+
+          io.emit("gift", giftData);
+        } catch (err) {
+          console.error("❌ Erro ao processar gift:", err.message);
+        }
       });
 
       tiktok.on("disconnected", () => {
