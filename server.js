@@ -53,9 +53,12 @@ io.on("connection", (socket) => {
     }
 
     try {
-      tiktokConnection = new WebcastPushConnection(username, {
-        enableExtendedGiftInfo: false,
-      });
+     tiktokConnection = new WebcastPushConnection(username, {
+  enableExtendedGiftInfo: false,
+  fetchRoomInfoOnConnect: false,
+  processInitialData: false,
+});
+
 
       await tiktokConnection.connect();
       tiktokConnected = true;
