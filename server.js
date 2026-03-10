@@ -1,3 +1,10 @@
+process.on('uncaughtException', (err) => {
+  console.error('❌ Uncaught Exception:', err.message);
+});
+process.on('unhandledRejection', (err) => {
+  console.error('❌ Unhandled Rejection:', err);
+});
+
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
@@ -74,26 +81,32 @@ io.on("connection", (socket) => {
       io.emit("tiktok-connected", username);
 
       tiktok.on("gift", (data) => {
-        if (data.giftType === 1 && !data.repeatEnd) return;
+        try {
+          if (data.giftType === 1 && !data.repeatEnd) return;
 
-        const giftName = data.giftName || "";
-        const giftLower = giftName.toLowerCase().trim();
-        const mapping = GIFT_MAP[giftLower];
+          const giftName = data.giftName || "";
+          const giftLower = giftName.toLowerCase().trim();
+          const mapping = GIFT_MAP[giftLower];
 
-        const giftData = {
-          uniqueId: data.uniqueId || "",
-          username: data.nickname || data.uniqueId || "Anônimo",
-          profilePicture: data.profilePictureUrl ||
-            `https://api.dicebear.com/7.x/adventurer/svg?seed=${data.uniqueId}`,
-          giftName: giftName,
-          giftPictureUrl: data.giftPictureUrl || "",
-          repeatCount: data.repeatCount || 1,
-          diamondCount: data.diamondCount || 0,
-          teamId: mapping ? mapping.teamId : null,
-          points: mapping ? mapping.points : 0,
-        };
+          const giftData = {
+            uniqueId: data.uniqueId || "",
+            username: data.nickname || data.uniqueId || "Anônimo",
+            profilePicture: data.profilePictureUrl ||
+              `https://api.dicebear.com/7.x/adventurer/svg?seed=${data.uniqueId}`,
+            giftName: giftName,
+            giftPictureUrl: data.giftPictureUrl || "",
+            repeatCount: data.repeatCount || 1,
+            diamondCount: data.diamondCount || 0,
+            teamId: mapping ? mapping.teamId : null,
+            points: mapping ? mapping.points : 0,
+          };
 
-      console.log(`🖼️ Imagem: ${giftData.giftPictureUrl}`);
+          console.log(
+            `🎁 Gift: "${giftName}" → ${
+              mapping ? `${mapping.teamId} (+${mapping.points}pts)` : "NÃO MAPEADO"
+            } de ${giftData.username}`
+          );
+          console.log(`🖼️ Imagem: ${giftData.giftPictureUrl}`);
 
           io.emit("gift", giftData);
         } catch (err) {
