@@ -2,7 +2,7 @@ const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const cors = require("cors");
-const { TikTokLive } = require("@tiktool/live");
+const { WebcastPushConnection } = require("tiktok-live-connector");
 
 const app = express();
 app.use(cors());
