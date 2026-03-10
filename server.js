@@ -97,9 +97,8 @@ io.on("connection", (socket) => {
           `🎁 Gift: "${giftName}" → ${
             mapping ? `${mapping.teamId} (+${mapping.points}pts)` : "NÃO MAPEADO"
           } de ${giftData.username}`
-          console.log(`🖼️ Imagem: ${giftData.giftPictureUrl}`);
         );
-
+         console.log(`🖼️ Imagem: ${giftData.giftPictureUrl}`);
         io.emit("gift", giftData);
       });
 
