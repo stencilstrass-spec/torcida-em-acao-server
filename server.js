@@ -2,7 +2,7 @@ const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const cors = require("cors");
-const { WebcastPushConnection } = require("tiktok-live-connector");
+const { TikTokLive } = require("@tiktool/live");
 
 const app = express();
 app.use(cors());
@@ -14,6 +14,7 @@ const io = new Server(server, {
 });
 
 const PORT = process.env.PORT || 3001;
+const TIKTOOL_API_KEY = process.env.TIKTOOL_API_KEY || "";
 
 let tiktokConnection = null;
 let tiktokConnected = false;
@@ -53,12 +54,10 @@ io.on("connection", (socket) => {
     }
 
     try {
-     tiktokConnection = new WebcastPushConnection(username, {
-  processInitialData: false,
-  enableExtendedGiftInfo: false,
-});
-
-
+      tiktokConnection = new TikTokLive({
+        uniqueId: username,
+        apiKey: TIKTOOL_API_KEY,
+      });
 
       await tiktokConnection.connect();
       tiktokConnected = true;
@@ -66,26 +65,21 @@ io.on("connection", (socket) => {
       console.log(`✅ Conectado ao TikTok: @${username}`);
       io.emit("tiktok-connected", username);
 
-      tiktokConnection.on("gift", (data) => {
-        const giftName = data.giftName || "";
+      tiktokConnection.on("gift", (event) => {
+        const giftName = event.name || event.giftName || "";
         const giftLower = giftName.toLowerCase().trim();
         const mapping = GIFT_MAP[giftLower];
 
-        const giftPictureUrl =
-          data.giftPictureUrl ||
-          data.gift?.picture?.urlList?.[0] ||
-          "";
-
         const giftData = {
-          uniqueId: data.uniqueId || "",
-          username: data.nickname || data.uniqueId || "Anônimo",
+          uniqueId: event.userId || event.uniqueId || "",
+          username: event.nickname || event.uniqueId || "Anônimo",
           profilePicture:
-            data.profilePictureUrl ||
-            `https://api.dicebear.com/7.x/adventurer/svg?seed=${data.uniqueId}`,
+            event.profilePictureUrl ||
+            `https://api.dicebear.com/7.x/adventurer/svg?seed=${event.uniqueId}`,
           giftName: giftName,
-          giftPictureUrl: giftPictureUrl,
-          repeatCount: data.repeatCount || 1,
-          diamondCount: data.diamondCount || 0,
+          giftPictureUrl: event.image || event.giftPictureUrl || "",
+          repeatCount: event.repeatCount || 1,
+          diamondCount: event.diamondCount || 0,
           teamId: mapping ? mapping.teamId : null,
           points: mapping ? mapping.points : 0,
         };
@@ -101,26 +95,26 @@ io.on("connection", (socket) => {
         io.emit("gift", giftData);
       });
 
-      tiktokConnection.on("chat", (data) => {
+      tiktokConnection.on("chat", (event) => {
         io.emit("chat", {
-          uniqueId: data.uniqueId,
-          comment: data.comment,
-          profilePicture: data.profilePictureUrl,
+          uniqueId: event.uniqueId,
+          comment: event.comment,
+          profilePicture: event.profilePictureUrl,
         });
       });
 
-      tiktokConnection.on("member", (data) => {
+      tiktokConnection.on("member", (event) => {
         io.emit("member", {
-          uniqueId: data.uniqueId,
-          profilePicture: data.profilePictureUrl,
+          uniqueId: event.uniqueId,
+          profilePicture: event.profilePictureUrl,
         });
       });
 
-      tiktokConnection.on("roomUser", (data) => {
-        io.emit("viewer-count", data.viewerCount);
+      tiktokConnection.on("viewer", (event) => {
+        io.emit("viewer-count", event.viewerCount);
       });
 
-      tiktokConnection.on("disconnected", () => {
+      tiktokConnection.on("disconnect", () => {
         console.log("❌ TikTok desconectado");
         tiktokConnected = false;
         tiktokUsername = "";
