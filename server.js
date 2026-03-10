@@ -1,147 +1,180 @@
-process.on('uncaughtException', (err) => {
-  console.error('❌ Uncaught Exception:', err.message);
+process.on("uncaughtException", function(err) {
+  console.error("Uncaught Exception: " + err.message);
 });
-process.on('unhandledRejection', (err) => {
-  console.error('❌ Unhandled Rejection:', err);
+
+process.on("unhandledRejection", function(err) {
+  console.error("Unhandled Rejection: " + err);
 });
 
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
+const cors = require("cors");
 const { WebcastPushConnection } = require("tiktok-live-connector");
 
 const app = express();
+app.use(cors());
+app.use(express.json());
+
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: { origin: "*" }
+  cors: { origin: "*", methods: ["GET", "POST"] },
 });
 
-let tiktok = null;
-let connected = false;
-let currentUsername = "";
+const PORT = process.env.PORT || 3001;
 
-const GIFT_MAP = {
-  "Rose":                 { teamId: "fla", points: 1 },
+var GIFT_MAP = {
+  "rose":                 { teamId: "fla", points: 1 },
+  "rosa":                 { teamId: "fla", points: 1 },
   "gg":                   { teamId: "pal", points: 1 },
   "tiktok":               { teamId: "cor", points: 1 },
-  " Love you so much":    { teamId: "sao", points: 1 },
-  "Ice Cream Cone":       { teamId: "flu", points: 1 },
+  "love you so much":     { teamId: "sao", points: 1 },
+  "te amo tanto":         { teamId: "sao", points: 1 },
+  "ice cream cone":       { teamId: "flu", points: 1 },
+  "casquinha de sorvete": { teamId: "flu", points: 1 },
   "glow stick":           { teamId: "bot", points: 1 },
   "oldies":               { teamId: "vas", points: 1 },
   "pop":                  { teamId: "gre", points: 1 },
   "freestyle":            { teamId: "int", points: 1 },
-  "Cake Slice":           { teamId: "atl", points: 1 },
-  "White Rose":           { teamId: "cru", points: 1 },
-  "You're awesome":       { teamId: "san", points: 1 },
+  "cake slice":           { teamId: "atl", points: 1 },
+  "fatia de bolo":        { teamId: "atl", points: 1 },
+  "white rose":           { teamId: "cru", points: 1 },
+  "rosa branca":          { teamId: "cru", points: 1 },
+  "you're awesome":       { teamId: "san", points: 1 },
+  "voce e incrivel":      { teamId: "san", points: 1 },
 };
 
-app.get("/", (req, res) => {
-  res.json({
-    name: "Torcida em Ação — TikTok Server",
-    status: "running",
-    tiktok: { connected, username: currentUsername },
+let tiktokConnection = null;
+let tiktokConnected = false;
+let tiktokUsername = "";
+
+io.on("connection", function(socket) {
+  console.log("Cliente conectado: " + socket.id);
+
+  socket.emit("status", {
+    connected: tiktokConnected,
+    username: tiktokUsername,
   });
-});
 
-app.get("/status", (req, res) => {
-  res.json({ connected, username: currentUsername });
-});
+  socket.on("connect-tiktok", async function(username) {
+    console.log("Tentando conectar ao TikTok: @" + username);
 
-app.get("/gift-map", (req, res) => {
-  res.json(GIFT_MAP);
-});
-
-io.on("connection", (socket) => {
-  console.log("Overlay conectado");
-
-  if (connected && currentUsername) {
-    socket.emit("tiktok-connected", currentUsername);
-  }
-
-  socket.on("connect-tiktok", async (username) => {
-    if (connected && currentUsername === username) {
-      socket.emit("tiktok-connected", username);
-      return;
+    if (tiktokConnection) {
+      try { tiktokConnection.disconnect(); } catch (_) {}
+      tiktokConnection = null;
+      tiktokConnected = false;
+      tiktokUsername = "";
     }
-
-    if (connected && tiktok) {
-      tiktok.disconnect();
-      tiktok = null;
-      connected = false;
-    }
-
-    console.log("Conectando ao TikTok:", username);
-    tiktok = new WebcastPushConnection(username);
 
     try {
-      await tiktok.connect();
-      connected = true;
-      currentUsername = username;
-      console.log("✅ Conectado à live de", username);
+      tiktokConnection = new WebcastPushConnection(username, {
+        processInitialData: false,
+        enableExtendedGiftInfo: false,
+      });
+
+      await tiktokConnection.connect();
+      tiktokConnected = true;
+      tiktokUsername = username;
+      console.log("Conectado ao TikTok: @" + username);
       io.emit("tiktok-connected", username);
 
-      tiktok.on("gift", (data) => {
+      tiktokConnection.on("gift", function(data) {
         try {
           if (data.giftType === 1 && !data.repeatEnd) return;
 
-          const giftName = data.giftName || "";
-          const giftLower = giftName.toLowerCase().trim();
-          const mapping = GIFT_MAP[giftLower];
+          var giftName = data.giftName || "";
+          var giftLower = giftName.toLowerCase().trim();
+          var mapping = GIFT_MAP[giftLower];
+          var repeatCount = data.repeatCount || 1;
 
-          const giftData = {
+          var giftData = {
             uniqueId: data.uniqueId || "",
-            username: data.nickname || data.uniqueId || "Anônimo",
-            profilePicture: data.profilePictureUrl ||
-              `https://api.dicebear.com/7.x/adventurer/svg?seed=${data.uniqueId}`,
+            username: data.nickname || data.uniqueId || "Anonimo",
+            profilePicture: data.profilePictureUrl || "",
             giftName: giftName,
             giftPictureUrl: data.giftPictureUrl || "",
-            repeatCount: data.repeatCount || 1,
-            diamondCount: data.diamondCount || 0,
+            repeatCount: repeatCount,
             teamId: mapping ? mapping.teamId : null,
-            points: mapping ? mapping.points : 0,
+            points: mapping ? mapping.points * repeatCount : 0,
           };
 
           console.log(
-            "🎁 Gift: \"" + giftName + "\" → " +
-            (mapping ? mapping.teamId + " (+" + mapping.points + "pts)" : "NÃO MAPEADO") +
+            "Gift: " + giftName + " x" + repeatCount + " -> " +
+            (mapping ? mapping.teamId + " (+" + giftData.points + "pts)" : "NAO MAPEADO") +
             " de " + giftData.username
           );
-          console.log("🖼️ Imagem: " + giftData.giftPictureUrl);
+
           io.emit("gift", giftData);
         } catch (err) {
-          console.error("❌ Erro ao processar gift:", err.message);
+          console.error("Erro ao processar gift: " + err.message);
         }
       });
 
-      tiktok.on("disconnected", () => {
-        console.log("❌ Live desconectada");
-        connected = false;
-        currentUsername = "";
-        tiktok = null;
-        io.emit("tiktok-error", "Live desconectada");
+      tiktokConnection.on("chat", function(data) {
+        io.emit("chat", {
+          uniqueId: data.uniqueId,
+          comment: data.comment,
+          profilePicture: data.profilePictureUrl,
+        });
+      });
+
+      tiktokConnection.on("member", function(data) {
+        io.emit("member", {
+          uniqueId: data.uniqueId,
+          profilePicture: data.profilePictureUrl,
+        });
+      });
+
+      tiktokConnection.on("roomUser", function(data) {
+        io.emit("viewer-count", data.viewerCount);
+      });
+
+      tiktokConnection.on("disconnected", function() {
+        console.log("TikTok desconectado");
+        tiktokConnected = false;
+        tiktokUsername = "";
+        io.emit("tiktok-disconnected");
       });
 
     } catch (err) {
-      console.log("❌ Erro ao conectar:", err.message);
-      connected = false;
-      currentUsername = "";
-      tiktok = null;
-      socket.emit("tiktok-error", err.message || "Erro ao conectar");
+      console.error("Erro ao conectar TikTok: " + err.message);
+      tiktokConnected = false;
+      io.emit("tiktok-error", err.message);
     }
   });
 
-  socket.on("disconnect-tiktok", () => {
-    if (tiktok) {
-      tiktok.disconnect();
-      tiktok = null;
-      connected = false;
-      currentUsername = "";
+  socket.on("disconnect-tiktok", function() {
+    if (tiktokConnection) {
+      try { tiktokConnection.disconnect(); } catch (_) {}
+      tiktokConnection = null;
+      tiktokConnected = false;
+      tiktokUsername = "";
       io.emit("tiktok-disconnected");
+      console.log("TikTok desconectado manualmente");
     }
+  });
+
+  socket.on("disconnect", function() {
+    console.log("Cliente desconectado: " + socket.id);
   });
 });
 
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log("🚀 Torcida em Ação Server rodando na porta", PORT);
+app.get("/", function(req, res) {
+  res.json({
+    name: "Torcida em Acao - TikTok Server",
+    status: "running",
+    tiktok: { connected: tiktokConnected, username: tiktokUsername },
+  });
+});
+
+app.get("/status", function(req, res) {
+  res.json({ connected: tiktokConnected, username: tiktokUsername });
+});
+
+app.get("/gift-map", function(req, res) {
+  res.json(GIFT_MAP);
+});
+
+server.listen(PORT, function() {
+  console.log("Torcida em Acao Server rodando na porta " + PORT);
 });
