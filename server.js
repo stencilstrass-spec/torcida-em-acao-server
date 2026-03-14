@@ -154,6 +154,11 @@ io.on("connection", function(socket) {
     }
   });
 
+  // Sync battle state entre Admin e Overlay (Browser Source isolado)
+  socket.on("battle-sync", function(data) {
+    socket.broadcast.emit("battle-sync", data);
+  });
+
   socket.on("disconnect", function() {
     console.log("Cliente desconectado: " + socket.id);
   });
